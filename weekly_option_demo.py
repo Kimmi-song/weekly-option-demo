@@ -15,7 +15,6 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    .stApp { background-color: #0d1117; color: #e6edf3; }
     .metric-card {
         background: #161b22; border: 1px solid #30363d;
         border-radius: 8px; padding: 16px 20px; margin: 4px 0;
