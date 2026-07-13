@@ -214,6 +214,9 @@ with st.sidebar:
     st.caption("pykrx")
     st.caption("CNN Fear & Greed Index")
     st.caption("커버드콜 ETF (KR/US)")
+    st.markdown("**참고문헌**")
+    st.caption("Kang(2022) 한국증권학회지 — 위클리옵션 변동성지수 개선")
+    st.caption("노성호(2026) 자본시장연구원 — 자본시장 심리지수(CMSI)")
 # ─── 헤더 ─────────────────────────────────────────────────────
 st.markdown(f"""
 <h1 style='font-size:1.8rem; margin-bottom:4px;'>
@@ -253,6 +256,9 @@ country_map = {
 with tab1:
     st.markdown("<div class='section-header'>국가별 변동성 지수 비교 — VKOSPI (한국) 기준</div>",
                 unsafe_allow_html=True)
+    st.caption("📚 학술 근거: Kang(2022, 한국증권학회지)에 따르면 위클리옵션은 차근월물 대비 거래량 3.7배·체결빈도 6~10배로 "
+               "유동성이 높아 변동성지수(V-KOSPI200)의 급등락·과소변동 왜곡을 줄이는 데 기여합니다 — "
+               "본 대시보드가 위클리옵션 기반 신호를 핵심 데이터로 삼는 근거입니다.")
     # VIX 보조 차트
     if "vix" in df.columns:
         col_main, col_vix = st.columns([3,1])
@@ -468,6 +474,34 @@ with tab5:
         else:
             st.info("H3 판단 보류: 뚜렷한 상관관계 확인 안됨 — 표본 확대 필요")
     st.caption("⚠️ 실제 매도 포지션 잔고·델타 헤지 비율 데이터는 공개되지 않아, 커버드콜 ETF 가격 변동성을 대리지표로 사용한 간접 검증입니다.")
+    # ── 상승·하락 국면 비대칭 분석 (옵션 정리 노트 반영) ──
+    st.markdown("<div class='section-header'>상승·하락 국면별 비대칭 효과</div>", unsafe_allow_html=True)
+    st.caption("💡 커버드콜은 완전한 헤지가 아니라 '상승 이익은 제한, 하락 손실은 프리미엄만큼만 완충'하는 "
+               "비대칭 구조입니다. 이에 따라 상승 주간과 하락·보합 주간을 나누어 헤지효과가 실제로 "
+               "비대칭적으로 나타나는지 확인합니다.")
+    valid_dir = merged_h3.dropna(subset=["cc_vol", "cc_return"]).copy()
+    valid_dir["regime_dir"] = np.where(valid_dir["cc_return"] > 0, "상승 주간", "하락·보합 주간")
+    dir_rows = []
+    for r in ["상승 주간", "하락·보합 주간"]:
+        g = valid_dir[valid_dir["regime_dir"] == r]
+        if len(g) > 0:
+            c = np.corrcoef(g["cc_vol"], g["vkospi"])[0,1] if len(g) > 5 else np.nan
+            dir_rows.append({"국면": r, "평균 VKOSPI": g["vkospi"].mean(),
+                              "커버드콜-VKOSPI 상관계수": c, "표본수": len(g)})
+    dir_stats = pd.DataFrame(dir_rows).set_index("국면")
+    cu1, cu2 = st.columns([2,1])
+    with cu1:
+        st.dataframe(
+            dir_stats.style.format({"평균 VKOSPI":"{:.1f}","커버드콜-VKOSPI 상관계수":"{:.2f}","표본수":"{:.0f}"}),
+            use_container_width=True)
+    with cu2:
+        st.markdown("<br>", unsafe_allow_html=True)
+        up_c = dir_stats.loc["상승 주간","커버드콜-VKOSPI 상관계수"] if "상승 주간" in dir_stats.index else np.nan
+        down_c = dir_stats.loc["하락·보합 주간","커버드콜-VKOSPI 상관계수"] if "하락·보합 주간" in dir_stats.index else np.nan
+        if pd.notna(up_c) and pd.notna(down_c) and down_c < up_c:
+            st.success("하락 주간에서 상관이 더 뚜렷하게 역행 → 노트에서 설명한 '하락 손실 완충' 구조와 부합")
+        else:
+            st.info("상승·하락 주간 간 뚜렷한 비대칭이 확인되지 않음 — 표본 확대 후 재검증 필요")
 # ── Tab 6 : H4 공포탐욕지수 국면 ───────────────────────────────
 with tab6:
     fg_badge = '<span class="data-badge real">✅ 실제 데이터 (CNN F&G)</span>' if fg_real \
@@ -531,6 +565,11 @@ with tab6:
     st.plotly_chart(fig8, use_container_width=True)
     st.caption("💡 환율·금리는 H4의 보조 거시 변수로, 공포탐욕 국면 전환 시점과의 동행 여부를 함께 참고합니다. "
                "국내 CPI·CP·채권금리는 한국은행 ECOS API 키 발급 후 연동 예정입니다.")
+    st.caption("📚 참고: CNN Fear & Greed Index는 미국 시장 기준 지표로, 국내 시장에는 자본시장연구원의 "
+               "자본시장 심리지수(CMSI, 노성호 2026 — 국내 증권뉴스를 LLM으로 학습해 구축)가 방법론적으로 "
+               "더 적합합니다. CMSI가 공개 데이터로 제공되면 본 지표를 대체할 예정입니다.")
 st.markdown("---")
 st.caption("⚠️ 본 대시보드는 공모전 시연용 프로토타입입니다.")
 st.caption("📁 데이터 출처: KRX · Yahoo Finance · pykrx · CNN Fear & Greed Index | 모델: XGBoost · TabNet")
+st.caption("📚 참고문헌: 강태훈(2022) 「변동성지수의 개선을 위한 위클리옵션의 활용에 관한 연구」 한국증권학회지 51(6) · "
+           "노성호(2026) 「자본시장 심리지수의 구축과 활용」 자본시장연구원 이슈보고서 26-01")
