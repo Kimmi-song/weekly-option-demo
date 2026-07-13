@@ -117,7 +117,7 @@ def generate_backtest():
         "buy_hold":   np.cumprod(1 + np.random.randn(n)*0.015 + 0.001),
         "moving_avg": np.cumprod(1 + np.random.randn(n)*0.013 + 0.0015),
     })
-# ─── H3 : 커버드콜 헤지효과 데이터 (2순위) ──────────────────────
+# ─── 커버드콜 헤지효과 데이터 ──────────────────────────────────
 @st.cache_data(ttl=3600)
 def load_covered_call_data():
     """커버드콜 ETF 실제 데이터 로드 — KR 티커 우선, 실패시 US 티커, 그마저 실패시 더미"""
@@ -141,7 +141,7 @@ def load_covered_call_data():
     n = len(dates)
     cc = 100 + np.cumsum(np.random.randn(n)*0.5) - np.sin(np.arange(n)*0.3)*3
     return pd.DataFrame({"date": dates, "covered_call": cc}), False, "시연용 더미 데이터"
-# ─── H4 : 공포탐욕지수 데이터 (2순위) ────────────────────────────
+# ─── 공포탐욕지수 데이터 ──────────────────────────────────────
 @st.cache_data(ttl=3600)
 def load_fear_greed_data():
     """CNN Fear & Greed Index 공개 JSON 엔드포인트에서 로드 — 실패시 더미"""
@@ -164,7 +164,7 @@ def load_fear_greed_data():
     n = len(dates)
     fgv = np.clip(50 + np.cumsum(np.random.randn(n)*3) + np.sin(np.arange(n)*0.2)*15, 0, 100)
     return pd.DataFrame({"date": dates, "fear_greed": fgv}), False
-# ─── H3·H4 보조 거시지표 (환율·미국채 10년물) ────────────────────
+# ─── 보조 거시지표 (환율·미국채 10년물) ──────────────────────────
 @st.cache_data(ttl=3600)
 def load_macro_data():
     dates = pd.date_range("2023-01-01", "2025-12-31", freq="W-THU")
@@ -223,7 +223,7 @@ st.markdown(f"""
 📊 위클리 옵션 변동성 예측 대시보드 {data_label}
 </h1>
 <p style='color:#8b949e; margin-bottom:24px;'>
-아시아권 옵션 시장 크로스마켓 전이학습 · 다중 시간 지평 모델 · 백테스팅 전략 검증 · 헤지효과·심리국면 분석(H3·H4)
+아시아권 옵션 시장 크로스마켓 전이학습 · 다중 시간 지평 모델 · 백테스팅 전략 검증 · 헤지효과·심리국면 분석
 </p>
 """, unsafe_allow_html=True)
 # ─── KPI ──────────────────────────────────────────────────────
@@ -245,7 +245,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 tab1,tab2,tab3,tab4,tab5,tab6 = st.tabs([
     "🌏 아시아권 변동성 비교","🤖 모델 예측 결과",
     "⏱ 시간 지평 비교","💰 백테스팅 결과",
-    "🛡️ 커버드콜 헤지효과 (H3)","😨 공포탐욕지수 국면 (H4)"
+    "🛡️ 커버드콜 헤지효과","😨 공포탐욕지수 국면"
 ])
 country_map = {
     "🇭🇰 홍콩 (VHSI)": ("vhsi","#f0b429","VHSI"),
@@ -391,8 +391,8 @@ with tab3:
     fig3.update_traces(texttemplate="%{text:.2f}",textposition="outside")
     fig3.update_layout(**{**LAYOUT,"height":360,"yaxis":{**LAYOUT["yaxis"],"range":[0.5,0.95]}})
     st.plotly_chart(fig3,use_container_width=True)
-    st.info("💡 H2 검증: 중장기(월간) 모델 AUC가 단기(주간) 대비 0.08~0.09 높음.")
-    st.markdown("<div class='section-header'>만기일 효과 분석 (H3)</div>",unsafe_allow_html=True)
+    st.info("💡 중장기(월간) 모델 AUC가 단기(주간) 대비 0.08~0.09 높음.")
+    st.markdown("<div class='section-header'>만기일 효과 분석</div>",unsafe_allow_html=True)
     ed = pd.DataFrame({"구분":["만기일 직전 주간","일반 주간"],
                         "평균 VKOSPI":[29.4,22.1],"표준편차":[6.2,4.1]})
     ce1,ce2 = st.columns(2)
@@ -405,7 +405,7 @@ with tab3:
         st.markdown("<br>",unsafe_allow_html=True)
         st.metric("만기일 직전 평균 VKOSPI","29.4","+7.3 vs 일반 주간")
         st.metric("t-검정 p-value","0.003","✅ 유의수준 0.05 이하")
-        st.success("H3 채택: 만기일 직전 주간 변동성이 유의미하게 높음")
+        st.success("만기일 직전 주간 변동성이 유의미하게 높음 — 만기일 효과 확인")
 # ── Tab 4 ───────────────────────────────────────────────────
 with tab4:
     st.markdown("<div class='section-header'>누적 수익률 비교 (2024.01 ~ 2025.12)</div>",
@@ -430,12 +430,12 @@ with tab4:
     })
     st.markdown("<div class='section-header'>전략별 리스크/수익 지표</div>",unsafe_allow_html=True)
     st.dataframe(rd,use_container_width=True,hide_index=True)
-    st.success("✅ H5 검증: 모델 전략이 Buy&Hold 대비 누적 수익률 +9.2%p, 샤프비율 +0.41, MDD -6.2%p 개선.")
-# ── Tab 5 : H3 커버드콜 헤지효과 ───────────────────────────────
+    st.success("✅ 모델 전략이 Buy&Hold 대비 누적 수익률 +9.2%p, 샤프비율 +0.41, MDD -6.2%p 개선.")
+# ── Tab 5 : 커버드콜 헤지효과 ─────────────────────────────────
 with tab5:
     cc_badge = '<span class="data-badge real">✅ 실제 데이터</span>' if cc_real \
                else '<span class="data-badge dummy">⚠️ 시연용 더미 데이터</span>'
-    st.markdown(f"<div class='section-header'>H3 검증 — 커버드콜(옵션 매도) 포지션의 변동성 완화 효과 {cc_badge}</div>",
+    st.markdown(f"<div class='section-header'>커버드콜(옵션 매도) 포지션의 변동성 완화 효과 검증 {cc_badge}</div>",
                 unsafe_allow_html=True)
     st.caption(f"📌 참조 데이터: {cc_label if cc_real else '커버드콜 ETF (시연용 더미)'} · "
                "가설: 커버드콜 등 매도 포지션 수요가 클수록 옵션 매도가 변동성을 완화하는 방향으로 작용한다")
@@ -468,11 +468,11 @@ with tab5:
         st.metric("커버드콜 평균 실현변동성", f"{valid_h3['cc_vol'].mean():.2f}%")
         st.metric("VKOSPI 고변동성(>28) 구간 빈도", f"{(merged_h3['vkospi']>28).mean()*100:.1f}%")
         if corr_h3 < -0.1:
-            st.success("H3 채택 후보: 커버드콜 변동성이 시장 변동성과 역행하는 경향 → 헤지효과 확인")
+            st.success("커버드콜 변동성이 시장 변동성과 역행하는 경향 → 헤지효과 확인")
         elif corr_h3 > 0.1:
-            st.warning("H3 기각 후보: 커버드콜 변동성이 시장 변동성과 동행 → 헤지효과 뚜렷하지 않음")
+            st.warning("커버드콜 변동성이 시장 변동성과 동행 → 헤지효과 뚜렷하지 않음")
         else:
-            st.info("H3 판단 보류: 뚜렷한 상관관계 확인 안됨 — 표본 확대 필요")
+            st.info("뚜렷한 상관관계 확인 안됨 — 표본 확대 필요")
     st.caption("⚠️ 실제 매도 포지션 잔고·델타 헤지 비율 데이터는 공개되지 않아, 커버드콜 ETF 가격 변동성을 대리지표로 사용한 간접 검증입니다.")
     # ── 상승·하락 국면 비대칭 분석 (옵션 정리 노트 반영) ──
     st.markdown("<div class='section-header'>상승·하락 국면별 비대칭 효과</div>", unsafe_allow_html=True)
@@ -502,11 +502,11 @@ with tab5:
             st.success("하락 주간에서 상관이 더 뚜렷하게 역행 → 노트에서 설명한 '하락 손실 완충' 구조와 부합")
         else:
             st.info("상승·하락 주간 간 뚜렷한 비대칭이 확인되지 않음 — 표본 확대 후 재검증 필요")
-# ── Tab 6 : H4 공포탐욕지수 국면 ───────────────────────────────
+# ── Tab 6 : 공포탐욕지수 국면 ─────────────────────────────────
 with tab6:
     fg_badge = '<span class="data-badge real">✅ 실제 데이터 (CNN F&G)</span>' if fg_real \
                else '<span class="data-badge dummy">⚠️ 시연용 더미 데이터</span>'
-    st.markdown(f"<div class='section-header'>H4 검증 — 공포·탐욕 국면별 변동성 반응 차이 {fg_badge}</div>",
+    st.markdown(f"<div class='section-header'>공포·탐욕 국면별 변동성 반응 차이 검증 {fg_badge}</div>",
                 unsafe_allow_html=True)
     st.caption("가설: 시장 공포·탐욕 국면에 따라 위클리옵션 도입 효과(변동성 반응)의 방향성이 달라진다")
     merged_h4 = df[["date","vkospi"]].merge(fg_df, on="date", how="inner")
@@ -547,9 +547,9 @@ with tab6:
                      use_container_width=True)
         spread = regime_stats["mean"].max() - regime_stats["mean"].min()
         if spread > 3:
-            st.success(f"H4 채택 후보: 국면별 평균 VKOSPI 격차 {spread:.1f}p → 국면에 따라 변동성 반응이 유의하게 다름")
+            st.success(f"국면별 평균 VKOSPI 격차 {spread:.1f}p → 국면에 따라 변동성 반응이 유의하게 다름")
         else:
-            st.info(f"H4 판단 보류: 국면별 평균 VKOSPI 격차 {spread:.1f}p로 크지 않음")
+            st.info(f"국면별 평균 VKOSPI 격차 {spread:.1f}p로 크지 않음")
     st.markdown("<div class='section-header'>보조 거시지표 — 환율 · 미국채 10년물</div>", unsafe_allow_html=True)
     macro_badge = '<span class="data-badge real">✅ 실제 데이터</span>' if macro_real \
                   else '<span class="data-badge dummy">⚠️ 시연용 더미 데이터</span>'
@@ -563,7 +563,7 @@ with tab6:
         "yaxis": {**LAYOUT["yaxis"], "title": "USD/KRW"},
         "yaxis2": dict(overlaying="y", side="right", title="10Y (%)", gridcolor="#21262d")})
     st.plotly_chart(fig8, use_container_width=True)
-    st.caption("💡 환율·금리는 H4의 보조 거시 변수로, 공포탐욕 국면 전환 시점과의 동행 여부를 함께 참고합니다. "
+    st.caption("💡 환율·금리는 국면 분석의 보조 거시 변수로, 공포탐욕 국면 전환 시점과의 동행 여부를 함께 참고합니다. "
                "국내 CPI·CP·채권금리는 한국은행 ECOS API 키 발급 후 연동 예정입니다.")
     st.caption("📚 참고: CNN Fear & Greed Index는 미국 시장 기준 지표로, 국내 시장에는 자본시장연구원의 "
                "자본시장 심리지수(CMSI, 노성호 2026 — 국내 증권뉴스를 LLM으로 학습해 구축)가 방법론적으로 "
